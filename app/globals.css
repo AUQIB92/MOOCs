@@ -246,3 +246,37 @@
     transform: translateY(0);
   }
 }
+
+/* ---- Scenery motion graphics (landing hero) ---- */
+@keyframes scenery-glow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.05); }
+}
+@keyframes scenery-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes scenery-twinkle {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 1; }
+}
+@keyframes scenery-drift {
+  from { transform: translate3d(-25%, 0, 0); }
+  to { transform: translate3d(25%, 0, 0); }
+}
+@keyframes scenery-float {
+  0% { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
+  15% { opacity: 0.9; }
+  85% { opacity: 0.9; }
+  100% { transform: translate3d(24px, -160px, 0) scale(1); opacity: 0; }
+}
+@keyframes scenery-sway {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@layer utilities {
+  .animate-scenery-glow { animation: scenery-glow 7s ease-in-out infinite; }
+  .animate-scenery-spin { animation: scenery-spin 120s linear infinite; }
+  .animate-scenery-twinkle { animation: scenery-twinkle 4s ease-in-out infinite; }
+  .animate-scenery-sway { animation: scenery-sway 9s ease-in-out infinite; }
+}

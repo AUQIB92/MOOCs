@@ -20,6 +20,7 @@ import {
   Calendar,
   CheckCircle,
   RefreshCw,
+  AlertTriangle,
 } from '@/components/icons'
 import { toast } from 'sonner'
 import type { ExamCycle, MoocMapping } from '@/lib/types'
@@ -177,6 +178,22 @@ export function EnrollClient({ mappings, examCycles, departmentId }: EnrollClien
           </div>
         </CardContent>
       </Card>
+
+      {/* Registration rules — MOOC Coordinator notice No. MOOCS/26/002 */}
+      <div className="rounded-xl border border-warning/40 bg-warning/10 p-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+          <div className="space-y-1 text-sm">
+            <p className="font-semibold text-warning">Before you register</p>
+            <ul className="list-inside list-disc space-y-0.5 text-muted-foreground">
+              <li>Select courses in consultation with your Head of Department.</li>
+              <li>Each batch has only <strong>two opportunities</strong> to complete the prescribed MOOCs.</li>
+              <li>Already passed a required MOOC? You need not register again.</li>
+              <li>Batch 2023: this is the last remedial opportunity.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Left: Course Selection */}

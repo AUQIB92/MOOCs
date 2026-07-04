@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { BookOpen, GraduationCap, Award, TrendingUp, ArrowRight, CheckCircle, Calendar, Upload, Shield, Users, Clock, FileCheck } from 'lucide-react'
+import { BookOpen, GraduationCap, Award, TrendingUp, ArrowRight, CheckCircle, Calendar, Upload, Shield, Users, Clock, FileCheck, Building2 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { SceneryBackdrop } from '@/components/landing/scenery-backdrop'
 
 const workflow = [
   {
@@ -63,18 +64,42 @@ const features = [
 ]
 
 const stats = [
-  { value: '500+', label: 'Active Students', icon: Users },
-  { value: '150+', label: 'Approved MOOCs', icon: BookOpen },
-  { value: '95%', label: 'Pass Rate', icon: Award },
-  { value: '2', label: 'Cycles/Year', icon: Calendar },
+  { value: '10', label: 'Approved MOOCs', icon: BookOpen },
+  { value: '5', label: 'Departments', icon: Building2 },
+  { value: '2', label: 'Exam Cycles / Year', icon: Calendar },
+  { value: '12 wk', label: 'Course Duration', icon: Clock },
 ]
 
 const currentCycle = {
-  name: 'NPTEL Jan-May 2026',
+  name: 'NPTEL Jul-Dec 2026',
   status: 'Registrations Open',
-  deadline: 'Feb 15, 2026',
-  resultWindow: 'May 1 - Jun 30, 2026',
+  deadline: 'Jul 27, 2026',
+  resultWindow: 'Oct 17 - 25, 2026',
 }
+
+// Official rules from the MOOC Coordinator's notice (No. MOOCS/26/002, 02-07-2026).
+const noticeRules = [
+  {
+    icon: Users,
+    title: 'Register with your HoD',
+    text: 'Batch 2024 & 2025 must select their MOOC courses for the July–December 2026 session in consultation with their Head of Department.',
+  },
+  {
+    icon: Calendar,
+    title: 'Two opportunities only',
+    text: 'Each batch has only two opportunities to complete the prescribed MOOC courses — use them wisely.',
+  },
+  {
+    icon: CheckCircle,
+    title: 'No re-registration if passed',
+    text: 'Students who have already successfully completed the required MOOC course need not register again.',
+  },
+  {
+    icon: Clock,
+    title: 'Batch 2023 — last chance',
+    text: 'For Batch 2023, this is the final remedial opportunity to complete any pending MOOC requirement.',
+  },
+]
 
 export function LandingPage() {
   return (
@@ -93,6 +118,9 @@ export function LandingPage() {
           </Link>
           
           <nav className="hidden items-center gap-8 md:flex">
+            <Link href="#notice" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+              Notice
+            </Link>
             <Link href="#workflow" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               How It Works
             </Link>
@@ -117,15 +145,11 @@ export function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 md:py-28">
-        {/* Background Effects */}
-        <div className="absolute inset-0 -z-10">
-          <div className="bg-grid absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_75%)]" />
-          <div className="absolute left-1/4 top-0 -z-10 h-[400px] w-[400px] rounded-full bg-primary/10 blur-[120px]" />
-          <div className="absolute right-1/4 bottom-0 -z-10 h-[300px] w-[300px] rounded-full bg-accent/10 blur-[100px]" />
-        </div>
-        
-        <div className="container mx-auto px-4">
+      <section className="relative flex min-h-[92vh] items-center overflow-hidden py-24 md:py-28">
+        {/* Motion-graphics scenery */}
+        <SceneryBackdrop />
+
+        <div className="container relative z-10 mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -214,6 +238,65 @@ export function LandingPage() {
               </motion.div>
             ))}
           </motion.div>
+        </div>
+      </section>
+
+      {/* Official Notice / Rules Section */}
+      <section id="notice" className="border-t border-border/50 py-24">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mx-auto mb-12 max-w-2xl text-center"
+          >
+            <Badge variant="outline" className="mb-4 border-warning/40 bg-warning/10 text-warning">
+              Important Notice
+            </Badge>
+            <h2 className="mb-4 text-3xl font-bold tracking-tight md:text-4xl">MOOC Registration Rules</h2>
+            <p className="text-lg text-muted-foreground">
+              Please read carefully before registering for the July–December 2026 session.
+            </p>
+          </motion.div>
+
+          <div className="mx-auto grid max-w-4xl gap-4 sm:grid-cols-2">
+            {noticeRules.map((rule, index) => (
+              <motion.div
+                key={rule.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.08 }}
+                viewport={{ once: true }}
+              >
+                <Card className="card-interactive h-full border-border/60">
+                  <CardContent className="flex items-start gap-4 p-6">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <rule.icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                          {index + 1}
+                        </span>
+                        <h3 className="font-semibold text-foreground">{rule.title}</h3>
+                      </div>
+                      <p className="text-sm leading-relaxed text-muted-foreground">{rule.text}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="mx-auto mt-8 max-w-4xl text-center text-xs text-muted-foreground"
+          >
+            Notice No. MOOCS/26/002, dated 02‑07‑2026 · Office of the MOOC Coordinator, GCET Ganderbal ·
+            For clarification, contact the MOOCs Coordinator through your department office.
+          </motion.p>
         </div>
       </section>
 
@@ -397,7 +480,7 @@ export function LandingPage() {
                   </Button>
                 </Link>
                 <Link href="/auth/login">
-                  <Button size="lg" variant="outline" className="h-12 border-primary-foreground/30 px-8 text-base text-primary-foreground hover:bg-primary-foreground/10">
+                  <Button size="lg" variant="outline" className="h-12 border-primary-foreground/50 bg-transparent px-8 text-base text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground">
                     Sign In
                   </Button>
                 </Link>
@@ -417,11 +500,11 @@ export function LandingPage() {
               </div>
               <div>
                 <p className="font-semibold">GCET MOOC Manager</p>
-                <p className="text-xs text-muted-foreground">G H Patel College of Engineering & Technology</p>
+                <p className="text-xs text-muted-foreground">Government College of Engineering &amp; Technology, Ganderbal</p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              Vallabh Vidyanagar, Anand, Gujarat
+              Ganderbal, Kashmir &ndash; 193504
             </p>
             <div className="flex items-center gap-6">
               <Link href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
@@ -430,9 +513,9 @@ export function LandingPage() {
               <Link href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                 Terms of Use
               </Link>
-              <Link href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <a href="mailto:aafaq.cse@gcetkashmir.ac.in" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                 Contact
-              </Link>
+              </a>
             </div>
           </div>
         </div>
