@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+import { Skeleton } from '@/components/ui/skeleton'
+import { StatCard, StatCardSkeleton } from '@/components/dashboard/stat-card'
 import {
   BookOpen,
   ClipboardList,
@@ -100,7 +101,7 @@ export function StudentDashboard({ profile }: StudentDashboardProps) {
         if (hasResult) {
           return <Badge variant="outline" className="bg-success/10 text-success border-success/30"><CheckCircle className="mr-1 h-3 w-3" />Verified</Badge>
         }
-        return <Badge variant="outline" className="bg-accent/10 text-accent border-accent/30"><CheckCircle className="mr-1 h-3 w-3" />Approved</Badge>
+        return <Badge variant="outline" className="bg-accent/10 text-accent border-accent/30"><CheckCircle className="mr-1 h-3 w-3" />Recorded</Badge>
       case 'rejected':
         return <Badge variant="destructive"><AlertCircle className="mr-1 h-3 w-3" />Rejected</Badge>
       default:
@@ -116,8 +117,18 @@ export function StudentDashboard({ profile }: StudentDashboardProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="space-y-6">
+        <Skeleton className="h-32 w-full rounded-2xl" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+        <Skeleton className="h-56 w-full rounded-xl" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl lg:col-span-2" />
+        </div>
       </div>
     )
   }
@@ -174,61 +185,34 @@ export function StudentDashboard({ profile }: StudentDashboardProps) {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="group relative overflow-hidden transition-all hover:shadow-lg hover:shadow-primary/5">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Registrations</CardTitle>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-              <ClipboardList className="h-4 w-4 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats?.totalRegistrations || 0}</div>
-            <p className="text-xs text-muted-foreground">Across all exam cycles</p>
-          </CardContent>
-        </Card>
-
-        <Card className="group relative overflow-hidden transition-all hover:shadow-lg hover:shadow-warning/5">
-          <div className="absolute inset-0 bg-gradient-to-br from-warning/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Review</CardTitle>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/10">
-              <Clock className="h-4 w-4 text-warning" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-warning">{stats?.pendingRegistrations || 0}</div>
-            <p className="text-xs text-muted-foreground">Awaiting admin approval</p>
-          </CardContent>
-        </Card>
-
-        <Card className="group relative overflow-hidden transition-all hover:shadow-lg hover:shadow-success/5">
-          <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Verified Results</CardTitle>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success/10">
-              <Award className="h-4 w-4 text-success" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-success">{stats?.verifiedResults || 0}</div>
-            <p className="text-xs text-muted-foreground">Credits transferred</p>
-          </CardContent>
-        </Card>
-
-        <Card className="group relative overflow-hidden transition-all hover:shadow-lg hover:shadow-accent/5">
-          <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Credits</CardTitle>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10">
-              <TrendingUp className="h-4 w-4 text-accent" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-accent">{stats?.totalCredits || 0}</div>
-            <p className="text-xs text-muted-foreground">From MOOC courses</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total Registrations"
+          value={stats?.totalRegistrations || 0}
+          hint="Across all exam cycles"
+          icon={ClipboardList}
+          tone="primary"
+        />
+        <StatCard
+          label="Pending Review"
+          value={stats?.pendingRegistrations || 0}
+          hint="Awaiting admin approval"
+          icon={Clock}
+          tone="warning"
+        />
+        <StatCard
+          label="Verified Results"
+          value={stats?.verifiedResults || 0}
+          hint="Credits transferred"
+          icon={Award}
+          tone="success"
+        />
+        <StatCard
+          label="Total Credits"
+          value={stats?.totalCredits || 0}
+          hint="From MOOC courses"
+          icon={TrendingUp}
+          tone="accent"
+        />
       </div>
 
       {/* Workflow Progress */}

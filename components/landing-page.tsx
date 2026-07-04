@@ -120,9 +120,9 @@ export function LandingPage() {
       <section className="relative overflow-hidden py-20 md:py-28">
         {/* Background Effects */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:32px_32px]" />
-          <div className="absolute left-1/4 top-0 -z-10 h-[400px] w-[400px] rounded-full bg-primary/8 blur-[120px]" />
-          <div className="absolute right-1/4 bottom-0 -z-10 h-[300px] w-[300px] rounded-full bg-accent/8 blur-[100px]" />
+          <div className="bg-grid absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_75%)]" />
+          <div className="absolute left-1/4 top-0 -z-10 h-[400px] w-[400px] rounded-full bg-primary/10 blur-[120px]" />
+          <div className="absolute right-1/4 bottom-0 -z-10 h-[300px] w-[300px] rounded-full bg-accent/10 blur-[100px]" />
         </div>
         
         <div className="container mx-auto px-4">
@@ -147,15 +147,15 @@ export function LandingPage() {
             <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               Transform Your{' '}
               <span className="relative">
-                <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                <span className="text-gradient-brand">
                   MOOC Learning
                 </span>
-                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none">
-                  <path d="M2 10C50 4 100 4 150 6C200 8 250 4 298 8" stroke="url(#gradient)" strokeWidth="3" strokeLinecap="round"/>
+                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none" aria-hidden="true">
+                  <path d="M2 10C50 4 100 4 150 6C200 8 250 4 298 8" stroke="url(#underline-gradient)" strokeWidth="3" strokeLinecap="round"/>
                   <defs>
-                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="hsl(var(--primary))" />
-                      <stop offset="100%" stopColor="hsl(var(--accent))" />
+                    <linearGradient id="underline-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="var(--primary)" />
+                      <stop offset="100%" stopColor="var(--accent)" />
                     </linearGradient>
                   </defs>
                 </svg>
@@ -202,7 +202,7 @@ export function LandingPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
               >
-                <Card className="group relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
+                <Card className="card-interactive group relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/50">
                   <CardContent className="p-6 text-center">
                     <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
                       <stat.icon className="h-5 w-5" />
@@ -243,7 +243,7 @@ export function LandingPage() {
                   transition={{ duration: 0.5, delay: index * 0.15 }}
                   viewport={{ once: true }}
                 >
-                  <Card className="group relative h-full overflow-hidden border-border/50 transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/5">
+                  <Card className="card-interactive group relative h-full overflow-hidden border-border/50 hover:border-primary/50">
                     {/* Step Number Background */}
                     <div className="absolute -right-4 -top-4 text-[120px] font-bold leading-none text-muted/20 transition-colors group-hover:text-primary/10">
                       {item.step}

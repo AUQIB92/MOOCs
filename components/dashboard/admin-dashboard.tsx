@@ -109,12 +109,12 @@ export function AdminDashboard({ profile }: AdminDashboardProps) {
             Overview of MOOC registrations and verifications
           </p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/dashboard/admin/registrations">
-            <Button variant="outline">View All Registrations</Button>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/dashboard/admin/registrations" className="flex-1 sm:flex-none">
+            <Button variant="outline" className="w-full sm:w-auto">View All Registrations</Button>
           </Link>
-          <Link href="/dashboard/admin/verify">
-            <Button>Verify Results</Button>
+          <Link href="/dashboard/admin/verify" className="flex-1 sm:flex-none">
+            <Button className="w-full sm:w-auto">Verify Results</Button>
           </Link>
         </div>
       </div>

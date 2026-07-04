@@ -14,11 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { PageHeader } from '@/components/dashboard/page-header'
 import {
   Clock,
   CheckCircle,
   XCircle,
-  FileText,
   ExternalLink,
   Filter,
   ClipboardList,
@@ -54,7 +54,7 @@ export function RegistrationsClient({ registrations }: RegistrationsClientProps)
         return (
           <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">
             <CheckCircle className="mr-1 h-3 w-3" />
-            Approved
+            Recorded
           </Badge>
         )
       case 'rejected':
@@ -102,20 +102,19 @@ export function RegistrationsClient({ registrations }: RegistrationsClientProps)
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">My Enrollments</h2>
-          <p className="text-muted-foreground">
-            Track your recorded MOOC enrollments and results
-          </p>
-        </div>
-        <Link href="/dashboard/courses">
-          <Button>
-            Record New Enrollment
-            <ArrowRight className="ml-2 h-4 w-4" />
+      <PageHeader
+        title="My Enrollments"
+        description="Track your recorded MOOC enrollments and results"
+        icon={ClipboardList}
+        actions={
+          <Button asChild>
+            <Link href="/dashboard/courses">
+              Record New Enrollment
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
           </Button>
-        </Link>
-      </div>
+        }
+      />
 
       {/* Filters */}
       <div className="flex items-center gap-4">

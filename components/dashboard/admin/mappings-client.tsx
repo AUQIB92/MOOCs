@@ -35,8 +35,11 @@ import {
   Trash2,
   Filter,
   Link2,
+  AlertTriangle,
 } from '@/components/icons'
 import { toast } from 'sonner'
+import { useAuth } from '@/lib/auth-context'
+import { PageHeader } from '@/components/dashboard/page-header'
 import type { MoocMapping, MoocCourse, CurriculumSubject, Department } from '@/lib/types'
 
 interface MappingsClientProps {
@@ -63,18 +66,25 @@ export function MappingsClient({ mappings, courses, subjects, departments }: Map
   const router = useRouter()
   const supabase = createClient()
 
+  const { profile } = useAuth()
+  // HoDs can only map MOOCs onto their own department's subjects.
+  const isHod = profile?.role === 'hod'
+  const hodDeptId = profile?.department_id ?? ''
+  const hodDeptName = departments.find((d) => d.id === hodDeptId)?.name ?? 'your department'
+  const effectiveDeptFilter = isHod ? hodDeptId : deptFilter
+
   const filteredMappings = mappings.filter((m) => {
     const course = m.mooc_course
     const subject = m.curriculum_subject
     const dept = subject?.department
-    
-    const matchesSearch = 
+
+    const matchesSearch =
       course?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course?.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       subject?.name.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    const matchesDept = deptFilter === 'all' || dept?.id === deptFilter
-    
+
+    const matchesDept = effectiveDeptFilter === 'all' || dept?.id === effectiveDeptFilter
+
     return matchesSearch && matchesDept
   })
 
@@ -108,6 +118,17 @@ export function MappingsClient({ mappings, courses, subjects, departments }: Map
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // HoDs may only map MOOCs onto their own department's subjects. This mirrors
+    // the database RLS policy, but gives a clear message instead of a raw error.
+    if (isHod) {
+      const subject = subjects.find((s) => s.id === formData.curriculum_subject_id)
+      if (!hodDeptId || !subject || subject.department_id !== hodDeptId) {
+        toast.error("You can only map MOOCs to your own department's curriculum subjects")
+        return
+      }
+    }
+
     setIsSubmitting(true)
 
     const data = {
@@ -161,25 +182,45 @@ export function MappingsClient({ mappings, courses, subjects, departments }: Map
   }
 
   const getSubjectOptions = () => {
+    // HoDs may only ever pick their own department's subjects — never fall back
+    // to "all" (e.g. before the profile loads, or if no department is assigned).
+    if (isHod) {
+      return hodDeptId ? subjects.filter((s) => s.department_id === hodDeptId) : []
+    }
     if (deptFilter === 'all') return subjects
-    return subjects.filter(s => s.department_id === deptFilter)
+    return subjects.filter((s) => s.department_id === deptFilter)
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Curriculum Mapping</h2>
-          <p className="text-muted-foreground">
-            Link MOOC courses to curriculum subjects for credit replacement
-          </p>
+      <PageHeader
+        title="Curriculum Mapping"
+        description={
+          isHod
+            ? `Link MOOC courses to ${hodDeptName}'s curriculum subjects`
+            : 'Link MOOC courses to curriculum subjects for credit replacement'
+        }
+        icon={Link2}
+        actions={
+          <Button onClick={openCreateDialog} disabled={isHod && !hodDeptId}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Mapping
+          </Button>
+        }
+      />
+
+      {isHod && !hodDeptId && (
+        <div className="flex items-start gap-3 rounded-lg border border-warning/50 bg-warning/10 p-4 text-warning">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-medium">No department assigned to your account</p>
+            <p className="text-sm text-warning/80">
+              Ask a MOOC Coordinator to assign your department before you can manage mappings.
+            </p>
+          </div>
         </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Mapping
-        </Button>
-      </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row">
@@ -192,20 +233,22 @@ export function MappingsClient({ mappings, courses, subjects, departments }: Map
             className="pl-10"
           />
         </div>
-        <Select value={deptFilter} onValueChange={setDeptFilter}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <Filter className="mr-2 h-4 w-4" />
-            <SelectValue placeholder="Department" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Departments</SelectItem>
-            {departments.map((dept) => (
-              <SelectItem key={dept.id} value={dept.id}>
-                {dept.name} ({dept.code})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!isHod && (
+          <Select value={deptFilter} onValueChange={setDeptFilter}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {departments.map((dept) => (
+                <SelectItem key={dept.id} value={dept.id}>
+                  {dept.name} ({dept.code})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Mappings Table */}

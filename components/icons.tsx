@@ -44,6 +44,9 @@ import {
   MoreHorizontal,
   RefreshCw,
   Link2,
+  MailCheck,
+  Sparkles,
+  Library,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -93,5 +96,8 @@ export {
   MoreHorizontal,
   RefreshCw,
   Link2,
+  MailCheck,
+  Sparkles,
+  Library,
   type LucideIcon,
 }

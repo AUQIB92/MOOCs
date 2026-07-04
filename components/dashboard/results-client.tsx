@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { PageHeader } from '@/components/dashboard/page-header'
 import {
-  FileText,
   Upload,
   Loader2,
   AlertCircle,
@@ -77,12 +77,11 @@ export function ResultsClient({ registrations }: ResultsClientProps) {
   if (registrations.length === 0) {
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold">Upload Results</h2>
-          <p className="text-muted-foreground">
-            Submit your MOOC course results for verification
-          </p>
-        </div>
+        <PageHeader
+          title="Upload Results"
+          description="Submit your MOOC course results for verification"
+          icon={Upload}
+        />
 
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
@@ -100,12 +99,11 @@ export function ResultsClient({ registrations }: ResultsClientProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Upload Results</h2>
-        <p className="text-muted-foreground">
-          Submit your MOOC course results for verification
-        </p>
-      </div>
+      <PageHeader
+        title="Upload Results"
+        description="Submit your MOOC course results for verification"
+        icon={Upload}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Upload Form */}

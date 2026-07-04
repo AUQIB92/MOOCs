@@ -37,14 +37,20 @@ import {
   ClipboardList,
 } from '@/components/icons'
 import { toast } from 'sonner'
+import { PageHeader } from '@/components/dashboard/page-header'
 import type { Registration } from '@/lib/types'
 import { format } from 'date-fns'
 
 interface AdminRegistrationsClientProps {
   registrations: Registration[]
+  /** Department ids that have a HoD assigned (to flag un-routable enrollments). */
+  hodDepartmentIds?: string[]
 }
 
-export function AdminRegistrationsClient({ registrations }: AdminRegistrationsClientProps) {
+export function AdminRegistrationsClient({
+  registrations,
+  hodDepartmentIds = [],
+}: AdminRegistrationsClientProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null)
@@ -55,6 +61,12 @@ export function AdminRegistrationsClient({ registrations }: AdminRegistrationsCl
   const { profile } = useAuth()
   const router = useRouter()
   const supabase = createClient()
+
+  // Only a Head of Department approves/rejects enrollments (for their own
+  // department's students). Admins and faculty coordinators view only.
+  const canApprove = profile?.role === 'hod'
+
+  const deptHasHod = (deptId?: string | null) => !!deptId && hodDepartmentIds.includes(deptId)
 
   const filteredRegistrations = registrations.filter((reg) => {
     const matchesStatus = statusFilter === 'all' || reg.status === statusFilter
@@ -133,19 +145,22 @@ export function AdminRegistrationsClient({ registrations }: AdminRegistrationsCl
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">All Registrations</h2>
-          <p className="text-muted-foreground">
-            Manage student MOOC course registrations
-          </p>
-        </div>
-        {pendingCount > 0 && (
-          <Badge variant="outline" className="w-fit bg-warning/10 text-warning border-warning/20">
-            {pendingCount} pending approval{pendingCount > 1 ? 's' : ''}
-          </Badge>
-        )}
-      </div>
+      <PageHeader
+        title={canApprove ? 'Enrollment Approvals' : 'Enrollments'}
+        description={
+          canApprove
+            ? "Review and approve your department's MOOC enrollments"
+            : 'View student MOOC course enrollments'
+        }
+        icon={ClipboardList}
+        actions={
+          pendingCount > 0 ? (
+            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+              {pendingCount} pending approval{pendingCount > 1 ? 's' : ''}
+            </Badge>
+          ) : undefined
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row">
@@ -197,6 +212,7 @@ export function AdminRegistrationsClient({ registrations }: AdminRegistrationsCl
                 <TableHeader>
                   <TableRow>
                     <TableHead>Student</TableHead>
+                    <TableHead>Department</TableHead>
                     <TableHead>Course</TableHead>
                     <TableHead>Replaces</TableHead>
                     <TableHead>Exam Cycle</TableHead>
@@ -215,6 +231,32 @@ export function AdminRegistrationsClient({ registrations }: AdminRegistrationsCl
                             {reg.student?.enrollment_number}
                           </p>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {reg.student?.department ? (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge variant="outline">{reg.student.department.code}</Badge>
+                            {!canApprove &&
+                              reg.status === 'pending' &&
+                              !deptHasHod(reg.student.department_id) && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-warning/20 bg-warning/10 text-warning"
+                                  title="No HoD assigned to this department yet"
+                                >
+                                  No HoD
+                                </Badge>
+                              )}
+                          </div>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="border-warning/20 bg-warning/10 text-warning"
+                            title="Student has no department, so this cannot be routed to a HoD"
+                          >
+                            No department
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div>
@@ -237,7 +279,7 @@ export function AdminRegistrationsClient({ registrations }: AdminRegistrationsCl
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => openReviewDialog(reg)}>
                           <Eye className="mr-2 h-4 w-4" />
-                          Review
+                          {canApprove ? 'Review' : 'View'}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -253,9 +295,11 @@ export function AdminRegistrationsClient({ registrations }: AdminRegistrationsCl
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Review Registration</DialogTitle>
+            <DialogTitle>{canApprove ? 'Review Enrollment' : 'Enrollment Details'}</DialogTitle>
             <DialogDescription>
-              Approve or reject this registration request
+              {canApprove
+                ? 'Approve or reject this enrollment request'
+                : 'Only the department HoD can approve or reject enrollments.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -299,14 +343,15 @@ export function AdminRegistrationsClient({ registrations }: AdminRegistrationsCl
                 {getStatusBadge(selectedRegistration.status)}
               </div>
 
-              {/* Admin Remarks */}
+              {/* Remarks */}
               <div className="space-y-2">
-                <p className="text-sm font-medium">Admin Remarks</p>
+                <p className="text-sm font-medium">Remarks</p>
                 <Textarea
-                  placeholder="Add any remarks or notes..."
+                  placeholder={canApprove ? 'Add any remarks or notes...' : 'No remarks'}
                   value={adminRemarks}
                   onChange={(e) => setAdminRemarks(e.target.value)}
                   rows={3}
+                  disabled={!canApprove}
                 />
               </div>
             </div>
@@ -314,9 +359,9 @@ export function AdminRegistrationsClient({ registrations }: AdminRegistrationsCl
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
+              {canApprove ? 'Cancel' : 'Close'}
             </Button>
-            {selectedRegistration?.status === 'pending' && (
+            {canApprove && selectedRegistration?.status === 'pending' && (
               <>
                 <Button
                   variant="destructive"

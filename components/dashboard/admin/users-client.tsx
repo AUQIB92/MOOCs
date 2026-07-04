@@ -30,9 +30,12 @@ import {
   Search,
   Filter,
   Loader2,
+  Plus,
+  RefreshCw,
 } from '@/components/icons'
 import { toast } from 'sonner'
-import type { Profile, Department, UserRole } from '@/lib/types'
+import { PageHeader } from '@/components/dashboard/page-header'
+import { ROLE_LABELS, type Profile, type Department, type UserRole } from '@/lib/types'
 
 interface UsersClientProps {
   profiles: Profile[]
@@ -40,12 +43,6 @@ interface UsersClientProps {
 }
 
 const PAGE_SIZE = 50
-
-const roleLabels: Record<UserRole, string> = {
-  admin: 'Admin',
-  faculty_coordinator: 'Faculty Coordinator',
-  student: 'Student',
-}
 
 export function UsersClient({ profiles, departments }: UsersClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -60,7 +57,60 @@ export function UsersClient({ profiles, departments }: UsersClientProps) {
     department_id: '',
   })
 
+  // "Add HoD" creation dialog
+  const [addOpen, setAddOpen] = useState(false)
+  const [addSubmitting, setAddSubmitting] = useState(false)
+  const [addForm, setAddForm] = useState({
+    full_name: '',
+    email: '',
+    password: '',
+    department_id: '',
+  })
+
   const supabase = createClient()
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
+    const arr = new Uint32Array(14)
+    crypto.getRandomValues(arr)
+    const pwd = Array.from(arr, (n) => chars[n % chars.length]).join('')
+    setAddForm((f) => ({ ...f, password: pwd }))
+  }
+
+  const handleAddHod = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!addForm.full_name.trim() || !addForm.email.trim() || !addForm.department_id) {
+      toast.error('Full name, email and department are required')
+      return
+    }
+    if (addForm.password.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return
+    }
+
+    setAddSubmitting(true)
+    try {
+      const res = await fetch('/api/admin/hods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addForm),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast.error(json.error || 'Failed to add HoD')
+        setAddSubmitting(false)
+        return
+      }
+      toast.success(`${addForm.full_name} added as Head of Department`)
+      setAddOpen(false)
+      setAddForm({ full_name: '', email: '', password: '', department_id: '' })
+      window.location.href = window.location.href
+    } catch {
+      toast.error('An unexpected error occurred')
+      setAddSubmitting(false)
+    }
+  }
 
   const filteredProfiles = profiles.filter((p) => {
     const query = searchQuery.toLowerCase()
@@ -86,6 +136,12 @@ export function UsersClient({ profiles, departments }: UsersClientProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingProfile) return
+
+    if (formData.role === 'hod' && !formData.department_id) {
+      toast.error('A Head of Department must be assigned a department')
+      return
+    }
+
     setIsSubmitting(true)
 
     const { error } = await supabase
@@ -114,12 +170,17 @@ export function UsersClient({ profiles, departments }: UsersClientProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold">Users</h2>
-        <p className="text-muted-foreground">
-          View all users and manage their role and department assignment
-        </p>
-      </div>
+      <PageHeader
+        title="Users"
+        description="View all users and manage their role and department assignment"
+        icon={Users}
+        actions={
+          <Button onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add HoD
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row">
@@ -143,8 +204,9 @@ export function UsersClient({ profiles, departments }: UsersClientProps) {
           <SelectContent>
             <SelectItem value="all">All Roles</SelectItem>
             <SelectItem value="student">Student</SelectItem>
+            <SelectItem value="hod">Head of Department</SelectItem>
             <SelectItem value="faculty_coordinator">Faculty Coordinator</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="admin">MOOC Coordinator</SelectItem>
           </SelectContent>
         </Select>
         <Select value={deptFilter} onValueChange={(v) => { setDeptFilter(v); setVisibleCount(PAGE_SIZE) }}>
@@ -197,8 +259,8 @@ export function UsersClient({ profiles, departments }: UsersClientProps) {
                         <TableCell className="font-medium">{profile.full_name}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{profile.email}</TableCell>
                         <TableCell>
-                          <Badge variant={profile.role === 'admin' ? 'default' : 'secondary'}>
-                            {roleLabels[profile.role]}
+                          <Badge variant={profile.role === 'admin' ? 'default' : profile.role === 'hod' ? 'outline' : 'secondary'}>
+                            {ROLE_LABELS[profile.role]}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -256,14 +318,15 @@ export function UsersClient({ profiles, departments }: UsersClientProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="hod">Head of Department</SelectItem>
                   <SelectItem value="faculty_coordinator">Faculty Coordinator</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="admin">MOOC Coordinator</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Department</Label>
+              <Label>Department {formData.role === 'hod' && <span className="text-destructive">*</span>}</Label>
               <Select
                 value={formData.department_id}
                 onValueChange={(v) => setFormData({ ...formData, department_id: v })}
@@ -279,15 +342,110 @@ export function UsersClient({ profiles, departments }: UsersClientProps) {
                   ))}
                 </SelectContent>
               </Select>
+              {formData.role === 'hod' && (
+                <p className="text-xs text-muted-foreground">
+                  A Head of Department manages the curriculum, MOOC courses and mappings for this department.
+                </p>
+              )}
             </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || (formData.role === 'hod' && !formData.department_id)}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add HoD Dialog */}
+      <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) setAddForm({ full_name: '', email: '', password: '', department_id: '' }) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Head of Department</DialogTitle>
+            <DialogDescription>
+              Creates an active account that can sign in immediately and manage its department&apos;s curriculum.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleAddHod} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="hod-name">Full Name *</Label>
+              <Input
+                id="hod-name"
+                placeholder="e.g., Dr. A. Sharma"
+                value={addForm.full_name}
+                onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hod-email">Email *</Label>
+              <Input
+                id="hod-email"
+                type="email"
+                placeholder="hod.cse@gcet.ac.in"
+                value={addForm.email}
+                onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hod-password">Temporary Password *</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="hod-password"
+                  type="text"
+                  placeholder="At least 6 characters"
+                  value={addForm.password}
+                  onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                  required
+                />
+                <Button type="button" variant="outline" onClick={generatePassword} className="shrink-0 gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Generate
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Share this with the HoD; they can change it later from their account.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Department *</Label>
+              <Select
+                value={addForm.department_id}
+                onValueChange={(v) => setAddForm({ ...addForm, department_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name} ({dept.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={addSubmitting || !addForm.full_name.trim() || !addForm.email.trim() || !addForm.department_id || addForm.password.length < 6}
+              >
+                {addSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create HoD
               </Button>
             </DialogFooter>
           </form>

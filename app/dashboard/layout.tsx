@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { DashboardSidebar, DashboardHeader } from '@/components/dashboard/sidebar'
+import { DashboardShell } from '@/components/dashboard/dashboard-shell'
 import { AuthProvider } from '@/lib/auth-context'
 
 export default async function DashboardLayout({
@@ -17,15 +17,7 @@ export default async function DashboardLayout({
 
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-background">
-        <DashboardSidebar />
-        <div className="pl-[70px] md:pl-[260px]">
-          <DashboardHeader />
-          <main className="p-6">
-            {children}
-          </main>
-        </div>
-      </div>
+      <DashboardShell>{children}</DashboardShell>
     </AuthProvider>
   )
 }

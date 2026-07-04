@@ -1,6 +1,14 @@
 // Database types for MOOC Management Platform
 
-export type UserRole = 'student' | 'faculty_coordinator' | 'admin'
+export type UserRole = 'student' | 'faculty_coordinator' | 'admin' | 'hod'
+
+/** Human-readable labels for each role, used across the sidebar, header and admin tables. */
+export const ROLE_LABELS: Record<UserRole, string> = {
+  admin: 'MOOC Coordinator',
+  hod: 'Head of Department',
+  faculty_coordinator: 'Faculty Coordinator',
+  student: 'Student',
+}
 export type RegistrationStatus = 'pending' | 'approved' | 'rejected'
 export type ResultStatus = 'pending' | 'verified' | 'rejected'
 export type EliteStatus = 'none' | 'silver' | 'gold'
@@ -51,6 +59,10 @@ export interface CurriculumSubject {
   department_id: string | null
   subject_type: string
   is_replaceable: boolean
+  /** Open Elective Course: offered to students of other departments. */
+  is_open_elective: boolean
+  /** Department ids whose students may take this subject (used when is_open_elective). */
+  open_to_departments: string[]
   created_at: string
   department?: Department
 }

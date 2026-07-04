@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/dashboard/page-header'
 import {
   Award,
   Search,
@@ -36,12 +37,11 @@ export function CertificatesClient({ registrations }: CertificatesClientProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">My Certificates</h2>
-        <p className="text-muted-foreground">
-          Certificates and results submitted for your MOOC course completions
-        </p>
-      </div>
+      <PageHeader
+        title="My Certificates"
+        description="Certificates and results submitted for your MOOC course completions"
+        icon={Award}
+      />
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -72,7 +72,7 @@ export function CertificatesClient({ registrations }: CertificatesClientProps) {
             const StatusIcon = status.icon
 
             return (
-              <Card key={registration.id}>
+              <Card key={registration.id} className="card-interactive hover:border-primary/40">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div>

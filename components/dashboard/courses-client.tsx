@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PageHeader } from '@/components/dashboard/page-header'
 import {
   BookOpen,
   Search,
@@ -53,18 +54,17 @@ export function CoursesClient({ courses, examCycles, mappings, departmentId }: C
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Approved MOOC Courses</h2>
-          <p className="text-muted-foreground">
-            Browse approved courses and enroll externally on NPTEL/SWAYAM
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => router.refresh()} className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Approved MOOC Courses"
+        description="Browse approved courses and enroll externally on NPTEL/SWAYAM"
+        icon={BookOpen}
+        actions={
+          <Button variant="outline" size="sm" onClick={() => router.refresh()} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Department Warning */}
       {!departmentId && (
@@ -161,7 +161,7 @@ export function CoursesClient({ courses, examCycles, mappings, departmentId }: C
           {filteredCourses.map((course) => {
             const courseMappings = getCourseMapping(course.id)
             return (
-              <Card key={course.id} className="flex flex-col">
+              <Card key={course.id} className="card-interactive flex flex-col hover:border-primary/40">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <Badge variant="secondary" className="shrink-0">

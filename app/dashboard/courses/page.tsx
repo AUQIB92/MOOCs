@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { CoursesClient } from '@/components/dashboard/courses-client'
+import { isSubjectVisibleToDepartment } from '@/lib/curriculum'
 import { redirect } from 'next/navigation'
 
 export default async function CoursesPage() {
@@ -35,9 +36,10 @@ export default async function CoursesPage() {
       .eq('is_active', true),
   ])
 
-  // Filter mappings to only those relevant to student's department
-  const deptMappings = mappings?.filter(m => 
-    m.curriculum_subject?.department_id === profile?.department_id
+  // Filter mappings to those visible to the student's department, including
+  // Open Electives offered to their department by other departments.
+  const deptMappings = mappings?.filter(m =>
+    isSubjectVisibleToDepartment(m.curriculum_subject, profile?.department_id)
   ) || []
 
   // Get unique course IDs from relevant mappings

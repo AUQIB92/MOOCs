@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PageHeader } from '@/components/dashboard/page-header'
 import {
   BookOpen,
   Search,
@@ -17,10 +18,7 @@ import {
   Upload,
   Loader2,
   Calendar,
-  Award,
   CheckCircle,
-  FileText,
-  ExternalLink,
   RefreshCw,
 } from '@/components/icons'
 import { toast } from 'sonner'
@@ -45,7 +43,9 @@ export function EnrollClient({ mappings, examCycles, departmentId }: EnrollClien
   const router = useRouter()
   const supabase = createClient()
 
-  const providers = [...new Set(mappings.map((m) => m.mooc_course?.provider).filter(Boolean))]
+  const providers = [
+    ...new Set(mappings.map((m) => m.mooc_course?.provider).filter((p): p is string => Boolean(p))),
+  ]
 
   const filteredMappings = mappings.filter((m) => {
     const course = m.mooc_course
@@ -96,13 +96,16 @@ export function EnrollClient({ mappings, examCycles, departmentId }: EnrollClien
       return
     }
 
+    // Enrollments don't require approval — they are recorded and active
+    // immediately. (Verification happens later, at the results/certificate stage.)
     const { error } = await supabase.from('registrations').insert({
       student_id: profile.id,
       mooc_course_id: selectedMapping.mooc_course_id,
       curriculum_subject_id: selectedMapping.curriculum_subject_id,
       exam_cycle_id: selectedCycle,
       registration_proof_url: proofUrl,
-      status: 'pending',
+      status: 'approved',
+      approved_at: new Date().toISOString(),
     })
 
     if (error) {
@@ -115,7 +118,7 @@ export function EnrollClient({ mappings, examCycles, departmentId }: EnrollClien
       return
     }
 
-    toast.success('Enrollment recorded successfully! Awaiting admin approval.')
+    toast.success('Enrollment recorded successfully!')
     setSelectedMapping(null)
     setSelectedCycle('')
     setRegistrationProof(null)
@@ -126,23 +129,23 @@ export function EnrollClient({ mappings, examCycles, departmentId }: EnrollClien
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Record Enrollment</h2>
-          <p className="text-muted-foreground">
-            Upload proof of your NPTEL/SWAYAM enrollment for admin approval
-          </p>
-          {departmentId && (
-            <Badge variant="outline" className="mt-2">
-              Courses for your department
-            </Badge>
-          )}
-        </div>
-        <Button variant="outline" size="sm" onClick={() => router.refresh()} className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Refresh Courses
-        </Button>
-      </div>
+      <PageHeader
+        title="Record Enrollment"
+        description="Record your NPTEL/SWAYAM enrollment — no approval needed, it's active right away"
+        icon={Upload}
+        actions={
+          <Button variant="outline" size="sm" onClick={() => router.refresh()} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh Courses
+          </Button>
+        }
+      >
+        {departmentId && (
+          <Badge variant="outline" className="mt-2">
+            Courses for your department
+          </Badge>
+        )}
+      </PageHeader>
 
       {/* Steps Guide */}
       <Card className="bg-muted/30">
@@ -167,8 +170,8 @@ export function EnrollClient({ mappings, examCycles, departmentId }: EnrollClien
             <div className="flex items-center gap-3 flex-1">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">3</div>
               <div>
-                <p className="text-sm font-medium">Upload Here</p>
-                <p className="text-xs text-muted-foreground">Submit proof for approval</p>
+                <p className="text-sm font-medium">Record Here</p>
+                <p className="text-xs text-muted-foreground">Recorded instantly — no approval</p>
               </div>
             </div>
           </div>

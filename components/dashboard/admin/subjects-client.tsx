@@ -36,6 +36,10 @@ import {
   Filter,
 } from '@/components/icons'
 import { toast } from 'sonner'
+import { useAuth } from '@/lib/auth-context'
+import { PageHeader } from '@/components/dashboard/page-header'
+import { AlertTriangle, Users } from '@/components/icons'
+import { cn } from '@/lib/utils'
 import type { CurriculumSubject, Department } from '@/lib/types'
 
 interface SubjectsClientProps {
@@ -57,19 +61,35 @@ export function SubjectsClient({ subjects, departments }: SubjectsClientProps) {
     department_id: '',
     subject_type: 'core',
     is_replaceable: true,
+    is_open_elective: false,
+    open_to_departments: [] as string[],
+    exclude_own_department: false,
   })
-  
+
   const router = useRouter()
   const supabase = createClient()
 
+  const { profile } = useAuth()
+  // Heads of Department are locked to their own department; admins see everything.
+  const isHod = profile?.role === 'hod'
+  const hodDeptId = profile?.department_id ?? ''
+  const hodDeptName = departments.find((d) => d.id === hodDeptId)?.name ?? 'your department'
+  // The department that "owns" the subject being edited: the HoD's own dept, or
+  // (for admins) whichever department they picked in the form.
+  const ownDeptId = isHod ? hodDeptId : formData.department_id
+  const ownDeptName = departments.find((d) => d.id === ownDeptId)?.name ?? 'The owning department'
+
   const filteredSubjects = subjects.filter((s) => {
-    const matchesSearch = 
+    const matchesSearch =
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.code.toLowerCase().includes(searchQuery.toLowerCase())
-    
+
     const matchesDept = deptFilter === 'all' || s.department_id === deptFilter
-    
-    return matchesSearch && matchesDept
+
+    // HoDs only ever see (and can act on) their own department's subjects.
+    const matchesScope = !isHod || s.department_id === hodDeptId
+
+    return matchesSearch && matchesDept && matchesScope
   })
 
   const resetForm = () => {
@@ -78,11 +98,38 @@ export function SubjectsClient({ subjects, departments }: SubjectsClientProps) {
       code: '',
       credits: 3,
       semester: 3,
-      department_id: '',
+      department_id: isHod ? hodDeptId : '',
       subject_type: 'core',
       is_replaceable: true,
+      is_open_elective: false,
+      open_to_departments: [],
+      exclude_own_department: false,
     })
     setEditingSubject(null)
+  }
+
+  const toggleOpenDept = (id: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      open_to_departments: prev.open_to_departments.includes(id)
+        ? prev.open_to_departments.filter((d) => d !== id)
+        : [...prev.open_to_departments, id],
+    }))
+  }
+
+  // When "other departments only" is on, drop the owning department from the
+  // eligibility list so its own students can never see the OEC.
+  const setExcludeOwn = (v: boolean) => {
+    setFormData((prev) => {
+      const own = isHod ? hodDeptId : prev.department_id
+      return {
+        ...prev,
+        exclude_own_department: v,
+        open_to_departments: v
+          ? prev.open_to_departments.filter((d) => d !== own)
+          : prev.open_to_departments,
+      }
+    })
   }
 
   const openEditDialog = (subject: CurriculumSubject) => {
@@ -95,6 +142,13 @@ export function SubjectsClient({ subjects, departments }: SubjectsClientProps) {
       department_id: subject.department_id || '',
       subject_type: subject.subject_type,
       is_replaceable: subject.is_replaceable,
+      is_open_elective: subject.is_open_elective ?? false,
+      open_to_departments: subject.open_to_departments ?? [],
+      // "Other departments only" was in effect if the OEC's own department is
+      // not in its eligibility list.
+      exclude_own_department:
+        (subject.is_open_elective ?? false) &&
+        !(subject.open_to_departments ?? []).includes(subject.department_id ?? ''),
     })
     setDialogOpen(true)
   }
@@ -106,7 +160,21 @@ export function SubjectsClient({ subjects, departments }: SubjectsClientProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (formData.is_open_elective && formData.open_to_departments.length === 0) {
+      toast.error('Select at least one department this Open Elective is offered to')
+      return
+    }
+
     setIsSubmitting(true)
+
+    // Final eligibility list: empty for non-OECs, and with the owning department
+    // removed when "other departments only" is on.
+    const openList = !formData.is_open_elective
+      ? []
+      : formData.exclude_own_department
+        ? formData.open_to_departments.filter((d) => d !== ownDeptId)
+        : formData.open_to_departments
 
     const data = {
       name: formData.name,
@@ -116,6 +184,8 @@ export function SubjectsClient({ subjects, departments }: SubjectsClientProps) {
       department_id: formData.department_id || null,
       subject_type: formData.subject_type,
       is_replaceable: formData.is_replaceable,
+      is_open_elective: formData.is_open_elective,
+      open_to_departments: openList,
     }
 
     try {
@@ -174,18 +244,34 @@ export function SubjectsClient({ subjects, departments }: SubjectsClientProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Curriculum Subjects</h2>
-          <p className="text-muted-foreground">
-            Manage subjects that can be replaced by MOOC courses
-          </p>
+      <PageHeader
+        title="Curriculum Subjects"
+        description={
+          isHod
+            ? `Manage ${hodDeptName}'s subjects that can be replaced by MOOC courses`
+            : 'Manage subjects that can be replaced by MOOC courses'
+        }
+        icon={BookOpen}
+        actions={
+          <Button onClick={openCreateDialog} disabled={isHod && !hodDeptId}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Subject
+          </Button>
+        }
+      />
+
+      {/* HoD without a department cannot scope any writes */}
+      {isHod && !hodDeptId && (
+        <div className="flex items-start gap-3 rounded-lg border border-warning/50 bg-warning/10 p-4 text-warning">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-medium">No department assigned to your account</p>
+            <p className="text-sm text-warning/80">
+              Ask a MOOC Coordinator to assign your department before you can manage curriculum.
+            </p>
+          </div>
         </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Subject
-        </Button>
-      </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row">
@@ -198,20 +284,22 @@ export function SubjectsClient({ subjects, departments }: SubjectsClientProps) {
             className="pl-10"
           />
         </div>
-        <Select value={deptFilter} onValueChange={setDeptFilter}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <Filter className="mr-2 h-4 w-4" />
-            <SelectValue placeholder="Department" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Departments</SelectItem>
-            {departments.map((dept) => (
-              <SelectItem key={dept.id} value={dept.id}>
-                {dept.name} ({dept.code})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!isHod && (
+          <Select value={deptFilter} onValueChange={setDeptFilter}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {departments.map((dept) => (
+                <SelectItem key={dept.id} value={dept.id}>
+                  {dept.name} ({dept.code})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Subjects Table */}
@@ -251,7 +339,14 @@ export function SubjectsClient({ subjects, departments }: SubjectsClientProps) {
                     <TableRow key={subject.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{subject.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{subject.name}</p>
+                            {subject.is_open_elective && (
+                              <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
+                                OEC
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground font-mono">{subject.code}</p>
                         </div>
                       </TableCell>
@@ -330,21 +425,25 @@ export function SubjectsClient({ subjects, departments }: SubjectsClientProps) {
               </div>
               <div className="space-y-2">
                 <Label>Department *</Label>
-                <Select 
-                  value={formData.department_id} 
-                  onValueChange={(v) => setFormData({ ...formData, department_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>
-                        {dept.name} ({dept.code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isHod ? (
+                  <Input value={hodDeptName} disabled readOnly />
+                ) : (
+                  <Select
+                    value={formData.department_id}
+                    onValueChange={(v) => setFormData({ ...formData, department_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name} ({dept.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 
@@ -405,11 +504,81 @@ export function SubjectsClient({ subjects, departments }: SubjectsClientProps) {
               />
             </div>
 
+            {/* Open Elective (OEC) */}
+            <div className="space-y-3 rounded-lg border p-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Open Elective (OEC)</Label>
+                  <p className="text-sm text-muted-foreground">Offer this subject to students of other departments</p>
+                </div>
+                <Switch
+                  checked={formData.is_open_elective}
+                  onCheckedChange={(v) => setFormData({ ...formData, is_open_elective: v })}
+                />
+              </div>
+
+              {formData.is_open_elective && (
+                <div className="space-y-3 border-t pt-3">
+                  {/* Exclude the owning department's students */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <Label>Other departments only</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {ownDeptName}&apos;s own students won&apos;t see this OEC
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.exclude_own_department}
+                      onCheckedChange={setExcludeOwn}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5 text-sm">
+                      <Users className="h-3.5 w-3.5" />
+                      Visible to students of *
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {departments
+                        .filter((dept) => !(formData.exclude_own_department && dept.id === ownDeptId))
+                        .map((dept) => {
+                          const selected = formData.open_to_departments.includes(dept.id)
+                          const isOwn = dept.id === ownDeptId
+                          return (
+                            <button
+                              type="button"
+                              key={dept.id}
+                              onClick={() => toggleOpenDept(dept.id)}
+                              aria-pressed={selected}
+                              title={isOwn ? `${dept.name} (owning department)` : dept.name}
+                              className={cn(
+                                'cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                                selected
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border text-muted-foreground hover:bg-muted'
+                              )}
+                            >
+                              {dept.code}
+                              {isOwn ? ' (own)' : ''}
+                            </button>
+                          )
+                        })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {formData.exclude_own_department
+                        ? 'Pick the other departments whose students can take this OEC.'
+                        : 'Pick the departments whose students can take this OEC — including your own, unless you turn on “Other departments only”.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || !formData.name || !formData.code || !formData.department_id}>
+              <Button type="submit" disabled={isSubmitting || !formData.name || !formData.code || !formData.department_id || (formData.is_open_elective && formData.open_to_departments.length === 0)}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editingSubject ? 'Update' : 'Create'}
               </Button>

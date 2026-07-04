@@ -6,8 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { GraduationCap, Loader2, AlertCircle, CheckCircle } from '@/components/icons'
+import { Loader2 } from '@/components/icons'
+import { AuthShell, AuthAlert } from '@/components/auth/auth-shell'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -36,37 +36,22 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]" />
-      </div>
-
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <Link href="/" className="mb-4 inline-flex items-center justify-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <GraduationCap className="h-6 w-6 text-primary-foreground" />
-            </div>
-          </Link>
-          <CardTitle className="text-2xl">Forgot Password</CardTitle>
-          <CardDescription>
-            Enter your email and we&apos;ll send you a reset link
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {sent ? (
-            <div className="flex items-start gap-2 rounded-lg border border-accent/50 bg-accent/10 p-3 text-sm text-accent">
-              <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>If an account exists for {email}, a password reset link has been sent.</p>
-            </div>
+    <AuthShell
+      title="Forgot Password"
+      description="Enter your email and we'll send you a reset link"
+      footer={
+        <Link href="/auth/login" className="font-medium text-primary hover:underline">
+          Back to sign in
+        </Link>
+      }
+    >
+      {sent ? (
+            <AuthAlert variant="success">
+              If an account exists for {email}, a password reset link has been sent.
+            </AuthAlert>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  {error}
-                </div>
-              )}
+              {error && <AuthAlert>{error}</AuthAlert>}
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -86,14 +71,6 @@ export default function ForgotPasswordPage() {
               </Button>
             </form>
           )}
-
-          <div className="mt-6 text-center text-sm">
-            <Link href="/auth/login" className="text-primary hover:underline">
-              Back to sign in
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    </AuthShell>
   )
 }
